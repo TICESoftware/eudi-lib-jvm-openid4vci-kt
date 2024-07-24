@@ -81,11 +81,12 @@ internal class AuthorizeIssuanceImpl(
     override suspend fun AuthorizationRequestPrepared.authorizeWithAuthorizationCode(
         authorizationCode: AuthorizationCode,
         serverState: String,
+        dpopNonce: String
     ): Result<AuthorizedRequest> =
         runCatching {
             ensure(serverState == state) { InvalidAuthorizationState() }
             val tokenResponse =
-                tokenEndpointClient.requestAccessTokenAuthFlow(authorizationCode, pkceVerifier).getOrThrow()
+                tokenEndpointClient.requestAccessTokenAuthFlow(authorizationCode, pkceVerifier, dpopNonce).getOrThrow()
             authorizedRequest(credentialOffer, tokenResponse)
         }
 
@@ -128,7 +129,7 @@ internal fun TxCode.validate(txCode: String?) {
 
 internal fun authorizedRequest(
     offer: CredentialOffer,
-    tokenResponse: TokenResponse,
+    tokenResponse: TokenResponse
 ): AuthorizedRequest {
     val offerRequiresProofs = offer.credentialConfigurationIdentifiers.any {
         val credentialConfiguration = offer.credentialIssuerMetadata.credentialConfigurationsSupported[it]

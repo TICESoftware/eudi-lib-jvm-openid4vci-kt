@@ -128,6 +128,7 @@ internal class TokenEndpointClient(
     suspend fun requestAccessTokenAuthFlow(
         authorizationCode: AuthorizationCode,
         pkceVerifier: PKCEVerifier,
+        dpopNonce: String
     ): Result<TokenResponse> = runCatching {
         val params = TokenEndpointForm.authCodeFlow(
             authorizationCode = authorizationCode,
@@ -135,7 +136,7 @@ internal class TokenEndpointClient(
             clientId = clientId,
             pkceVerifier = pkceVerifier,
         )
-        requestAccessToken(params).tokensOrFail(clock)
+        requestAccessToken(params, dpopNonce).tokensOrFail(clock)
     }
 
     /**
@@ -174,6 +175,7 @@ internal class TokenEndpointClient(
 
     private suspend fun requestAccessToken(
         params: Map<String, String>,
+        dpopNonce: String? = null
     ): TokenResponseTO =
         ktorHttpClientFactory().use { client ->
             val formParameters = Parameters.build {
@@ -181,7 +183,7 @@ internal class TokenEndpointClient(
             }
             val response = client.submitForm(tokenEndpoint.toString(), formParameters) {
                 dPoPJwtFactory?.let { factory ->
-                    dpop(factory, tokenEndpoint, Htm.POST, accessToken = null, nonce = null)
+                    dpop(factory, tokenEndpoint, Htm.POST, accessToken = null, nonce = dpopNonce)
                 }
             }
             if (response.status.isSuccess()) response.body<TokenResponseTO.Success>()

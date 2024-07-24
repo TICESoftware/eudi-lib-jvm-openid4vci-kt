@@ -143,6 +143,7 @@ interface AuthorizeIssuance {
     suspend fun AuthorizationRequestPrepared.authorizeWithAuthorizationCode(
         authorizationCode: AuthorizationCode,
         serverState: String,
+        dpopNonce: String
     ): Result<AuthorizedRequest>
 
     /**
