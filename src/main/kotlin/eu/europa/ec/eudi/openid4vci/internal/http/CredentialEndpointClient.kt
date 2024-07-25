@@ -50,7 +50,7 @@ internal class CredentialEndpointClient(
         ktorHttpClientFactory().use { client ->
             val url = credentialEndpoint.value
             val response = client.post(url) {
-                bearerOrDPoPAuth(dPoPJwtFactory, url, Htm.POST, accessToken, dpopNonce) //TODO DPOP REIN
+                bearerOrDPoPAuth(dPoPJwtFactory, url, Htm.POST, accessToken, dpopNonce)
                 contentType(ContentType.Application.Json)
                 setBody(CredentialRequestTO.from(request))
             }

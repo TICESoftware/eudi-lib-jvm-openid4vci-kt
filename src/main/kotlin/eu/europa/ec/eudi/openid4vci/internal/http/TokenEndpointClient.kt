@@ -15,18 +15,29 @@
  */
 package eu.europa.ec.eudi.openid4vci.internal.http
 
-import eu.europa.ec.eudi.openid4vci.*
+import eu.europa.ec.eudi.openid4vci.AccessToken
+import eu.europa.ec.eudi.openid4vci.AuthorizationCode
+import eu.europa.ec.eudi.openid4vci.CIAuthorizationServerMetadata
+import eu.europa.ec.eudi.openid4vci.CNonce
+import eu.europa.ec.eudi.openid4vci.ClientId
+import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
+import eu.europa.ec.eudi.openid4vci.CredentialIdentifier
 import eu.europa.ec.eudi.openid4vci.CredentialIssuanceError.AccessTokenRequestFailed
 import eu.europa.ec.eudi.openid4vci.Grants.PreAuthorizedCode
+import eu.europa.ec.eudi.openid4vci.KtorHttpClientFactory
+import eu.europa.ec.eudi.openid4vci.OpenId4VCIConfig
+import eu.europa.ec.eudi.openid4vci.PKCEVerifier
+import eu.europa.ec.eudi.openid4vci.RefreshToken
 import eu.europa.ec.eudi.openid4vci.internal.DPoP
 import eu.europa.ec.eudi.openid4vci.internal.DPoPJwtFactory
 import eu.europa.ec.eudi.openid4vci.internal.GrantedAuthorizationDetailsSerializer
 import eu.europa.ec.eudi.openid4vci.internal.Htm
 import eu.europa.ec.eudi.openid4vci.internal.TokenResponse
 import eu.europa.ec.eudi.openid4vci.internal.dpop
-import io.ktor.client.call.*
-import io.ktor.client.request.forms.*
-import io.ktor.http.*
+import io.ktor.client.call.body
+import io.ktor.client.request.forms.submitForm
+import io.ktor.http.Parameters
+import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.net.URI
@@ -59,7 +70,7 @@ internal sealed interface TokenResponseTO {
         @SerialName(
             "authorization_details",
         ) val authorizationDetails: Map<CredentialConfigurationIdentifier, List<CredentialIdentifier>>? = null,
-        val dpopNonce: String? = null
+        var dpopNonce: String? = null
     ) : TokenResponseTO
 
     /**
@@ -170,10 +181,11 @@ internal class TokenEndpointClient(
      * @return the token end point response, which will include a new [TokenResponse.accessToken] and possibly
      * a new [TokenResponse.refreshToken]
      */
-    suspend fun refreshAccessToken(refreshToken: RefreshToken): Result<TokenResponse> = runCatching {
-        val params = TokenEndpointForm.refreshAccessToken(clientId, refreshToken)
-        requestAccessToken(params).tokensOrFail(clock = clock)
-    }
+    suspend fun refreshAccessToken(refreshToken: RefreshToken): Result<TokenResponse> =
+        runCatching {
+            val params = TokenEndpointForm.refreshAccessToken(clientId, refreshToken)
+            requestAccessToken(params).tokensOrFail(clock = clock)
+        }
 
     private suspend fun requestAccessToken(
         params: Map<String, String>,
@@ -188,10 +200,14 @@ internal class TokenEndpointClient(
                     dpop(factory, tokenEndpoint, Htm.POST, accessToken = null, nonce = dpopNonce)
                 }
             }
-            if (response.status.isSuccess()) response.body<TokenResponseTO.Success>()
+            if (response.status.isSuccess()) response.body<TokenResponseTO.Success>().also {
+                val dPoPNonce = response.headers["DPoP-Nonce"] ?: throw IllegalStateException("No DPoP-Nonce received")
+                it.dpopNonce = dPoPNonce
+            }
             else response.body<TokenResponseTO.Failure>()
         }
 }
+
 internal object TokenEndpointForm {
     const val AUTHORIZATION_CODE_GRANT = "authorization_code"
     const val PRE_AUTHORIZED_CODE_GRANT = "urn:ietf:params:oauth:grant-type:pre-authorized_code"

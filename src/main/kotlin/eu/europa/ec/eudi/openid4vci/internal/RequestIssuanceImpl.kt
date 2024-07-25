@@ -55,7 +55,7 @@ internal class RequestIssuanceImpl(
         proofSigner: PopSigner,
         dpopNonce: String
     ): Result<SubmissionOutcome> = runCatching {
-        placeIssuanceRequest(accessToken, dpopNonce) { //TODO HERE DPOP
+        placeIssuanceRequest(accessToken, dpopNonce) {
             singleRequest(requestPayload, proofFactory(proofSigner, cNonce), credentialIdentifiers)
         }
     }
