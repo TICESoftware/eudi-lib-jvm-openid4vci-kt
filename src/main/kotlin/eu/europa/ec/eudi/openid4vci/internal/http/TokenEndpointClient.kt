@@ -59,6 +59,7 @@ internal sealed interface TokenResponseTO {
         @SerialName(
             "authorization_details",
         ) val authorizationDetails: Map<CredentialConfigurationIdentifier, List<CredentialIdentifier>>? = null,
+        val dpopNonce: String? = null
     ) : TokenResponseTO
 
     /**
@@ -86,6 +87,7 @@ internal sealed interface TokenResponseTO {
                     cNonce = cNonce?.let { CNonce(it, cNonceExpiresIn) },
                     authorizationDetails = authorizationDetails ?: emptyMap(),
                     timestamp = clock.instant(),
+                    dpopNonce = dpopNonce ?: "no dpopNonce"
                 )
             }
 

@@ -30,6 +30,7 @@ internal data class TokenResponse(
     val cNonce: CNonce?,
     val authorizationDetails: Map<CredentialConfigurationIdentifier, List<CredentialIdentifier>> = emptyMap(),
     val timestamp: Instant,
+    val dpopNonce: String
 )
 
 internal class AuthorizeIssuanceImpl(
@@ -87,7 +88,7 @@ internal class AuthorizeIssuanceImpl(
             ensure(serverState == state) { InvalidAuthorizationState() }
             val tokenResponse =
                 tokenEndpointClient.requestAccessTokenAuthFlow(authorizationCode, pkceVerifier, dpopNonce).getOrThrow()
-            authorizedRequest(credentialOffer, tokenResponse)
+            authorizedRequest(credentialOffer, tokenResponse) //TODO TOKENRESPONSE WITH DPOPNONCE
         }
 
     override suspend fun authorizeWithPreAuthorizationCode(txCode: String?): Result<AuthorizedRequest> = runCatching {
@@ -138,7 +139,7 @@ internal fun authorizedRequest(
     val (accessToken, refreshToken, cNonce, authorizationDetails, timestamp) = tokenResponse
     return when {
         cNonce != null && offerRequiresProofs ->
-            ProofRequired(accessToken, refreshToken, cNonce, authorizationDetails, timestamp)
+            ProofRequired(accessToken, refreshToken, cNonce, authorizationDetails, timestamp, tokenResponse.dpopNonce) // TODO HERE DPOP REIN
 
         else ->
             NoProofRequired(accessToken, refreshToken, authorizationDetails, timestamp)
