@@ -174,6 +174,7 @@ interface RequestIssuance {
     suspend fun AuthorizedRequest.ProofRequired.requestSingle(
         requestPayload: IssuanceRequestPayload,
         proofSigner: PopSigner,
+        dpopNonce: String
     ): Result<SubmissionOutcome>
 
     /**

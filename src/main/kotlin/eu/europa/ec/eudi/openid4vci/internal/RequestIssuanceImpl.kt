@@ -53,8 +53,9 @@ internal class RequestIssuanceImpl(
     override suspend fun AuthorizedRequest.ProofRequired.requestSingle(
         requestPayload: IssuanceRequestPayload,
         proofSigner: PopSigner,
+        dpopNonce: String
     ): Result<SubmissionOutcome> = runCatching {
-        placeIssuanceRequest(accessToken) {
+        placeIssuanceRequest(accessToken, dpopNonce) {
             singleRequest(requestPayload, proofFactory(proofSigner, cNonce), credentialIdentifiers)
         }
     }
@@ -175,13 +176,14 @@ internal class RequestIssuanceImpl(
 
     private suspend fun placeIssuanceRequest(
         token: AccessToken,
+        dpopNonce: String? = null,
         issuanceRequestSupplier: suspend () -> CredentialIssuanceRequest,
     ): SubmissionOutcome {
         fun handleIssuanceFailure(error: Throwable): SubmissionOutcome.Errored =
             submitRequestFromError(error) ?: throw error
         return when (val credentialRequest = issuanceRequestSupplier()) {
             is CredentialIssuanceRequest.SingleRequest -> {
-                credentialEndpointClient.placeIssuanceRequest(token, credentialRequest).fold(
+                credentialEndpointClient.placeIssuanceRequest(token, credentialRequest, dpopNonce).fold(
                     onSuccess = { SubmissionOutcome.Success(it.credentials, it.cNonce) },
                     onFailure = { handleIssuanceFailure(it) },
                 )

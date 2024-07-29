@@ -45,11 +45,12 @@ internal class CredentialEndpointClient(
     suspend fun placeIssuanceRequest(
         accessToken: AccessToken,
         request: CredentialIssuanceRequest.SingleRequest,
+        dpopNonce: String? = null
     ): Result<CredentialIssuanceResponse> = runCatching {
         ktorHttpClientFactory().use { client ->
             val url = credentialEndpoint.value
             val response = client.post(url) {
-                bearerOrDPoPAuth(dPoPJwtFactory, url, Htm.POST, accessToken)
+                bearerOrDPoPAuth(dPoPJwtFactory, url, Htm.POST, accessToken, dpopNonce)
                 contentType(ContentType.Application.Json)
                 setBody(CredentialRequestTO.from(request))
             }

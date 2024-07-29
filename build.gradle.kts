@@ -18,15 +18,11 @@ plugins {
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.dependency.check)
     alias(libs.plugins.maven.publish)
+    id("maven-publish")
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-    maven {
-        url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-        mavenContent { snapshotsOnly() }
-    }
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor(0, TimeUnit.SECONDS)
 }
 
 dependencies {
@@ -47,9 +43,33 @@ dependencies {
     testImplementation(libs.logback.classic)
     testImplementation(libs.cbor)
 }
+signing {
+    setRequired(project.hasProperty("signing.keyId"))
+    sign {
+        publishing.publications
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("mavenJava") {
+                groupId = "com.github.TICESoftware"
+                artifactId = "eudi-lib-jvm-openid4vci-kt"
+                version = "0.0.1"
+
+                from(components["java"])
+            }
+        }
+    }
+}
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
+    }
     sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+    targetCompatibility = JavaVersion.toVersion(libs.versions.java.get())
 }
 
 kotlin {
@@ -103,9 +123,15 @@ tasks.withType<DokkaTask>().configureEach {
             // contains descriptions for the module and the packages
             includes.from("Module.md")
 
-            documentedVisibilities.set(setOf(DokkaConfiguration.Visibility.PUBLIC, DokkaConfiguration.Visibility.PROTECTED))
+            documentedVisibilities.set(
+                setOf(
+                    DokkaConfiguration.Visibility.PUBLIC,
+                    DokkaConfiguration.Visibility.PROTECTED
+                )
+            )
 
-            val remoteSourceUrl = System.getenv()["GIT_REF_NAME"]?.let { URL("${Meta.BASE_URL}/tree/$it/src") }
+            val remoteSourceUrl =
+                System.getenv()["GIT_REF_NAME"]?.let { URL("${Meta.BASE_URL}/tree/$it/src") }
             remoteSourceUrl
                 ?.let {
                     sourceLink {

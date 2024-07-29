@@ -58,7 +58,7 @@ sealed interface AuthorizedRequest : java.io.Serializable {
      * @return The new state of the request.
      */
     fun withCNonce(cNonce: CNonce): ProofRequired =
-        ProofRequired(accessToken, refreshToken, cNonce, credentialIdentifiers, timestamp)
+        ProofRequired(accessToken, refreshToken, cNonce, credentialIdentifiers, timestamp, "no dpopNonce")
 
     fun withRefreshedAccessToken(
         refreshedAccessToken: AccessToken,
@@ -110,6 +110,7 @@ sealed interface AuthorizedRequest : java.io.Serializable {
         val cNonce: CNonce,
         override val credentialIdentifiers: Map<CredentialConfigurationIdentifier, List<CredentialIdentifier>>?,
         override val timestamp: Instant,
+        val dpopNonce: String
     ) : AuthorizedRequest
 }
 
@@ -143,6 +144,7 @@ interface AuthorizeIssuance {
     suspend fun AuthorizationRequestPrepared.authorizeWithAuthorizationCode(
         authorizationCode: AuthorizationCode,
         serverState: String,
+        dpopNonce: String
     ): Result<AuthorizedRequest>
 
     /**
